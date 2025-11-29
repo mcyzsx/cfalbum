@@ -1,7 +1,6 @@
 /**
  * Cloudflare Workers 相册系统
  * 功能：图片上传、展示、管理、缩略图生成
- * 本版本仅把首页 gallery 换成 Lightbox2 图库，其余不动
  */
 
 // 简单的认证检查
