@@ -40,7 +40,15 @@ export default {
     try {
       // 路由处理
       if (path === '/' || path === '/index.html') {
-        return handleHome(env);
+        return handleHome(env, url);
+      } else if (path.startsWith('/page/')) {
+        // 翻页路由处理
+        const pageMatch = path.match(/^\/page\/(\d+)$/);
+        if (pageMatch) {
+          const page = parseInt(pageMatch[1]);
+          return handleHome(env, url, page);
+        }
+        return new Response('Not Found', { status: 404 });
       } else if (path === '/admin/login') {
         return handleLoginPage(env);
       } else if (path === '/api/login' && request.method === 'POST') {
@@ -282,9 +290,9 @@ async function handleUpdateSettings(request, env, corsHeaders) {
   });
 }
 
-async function handleHome(env) {
+async function handleHome(env, url, page = 1) {
   const settings = await env.PHOTO_METADATA.get('site_settings', 'json') || {};
-  return new Response(getHomeHTML(settings), {
+  return new Response(getHomeHTML(settings, page), {
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 }
@@ -304,7 +312,7 @@ function handleLoginPage(env) {
 /* ==========================================
  * 以下 3 个 HTML 函数：仅 getHomeHTML() 换成优雅深色主题
  * ========================================== */
-function getHomeHTML(settings = {}) {
+function getHomeHTML(settings = {}, currentPage = 1) {
   const siteTitle = settings.siteTitle || '我的相册';
   const siteKeywords = settings.siteKeywords || '相册,照片,图片';
   const siteDescription = settings.siteDescription || '精心收藏的每一个瞬间';
@@ -345,12 +353,22 @@ function getHomeHTML(settings = {}) {
 
         h1 {
             text-align: center;
-            color: #ffffff;
             margin-bottom: 40px;
             font-size: 2.5rem;
             font-weight: 300;
             letter-spacing: 2px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        h1 a {
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        h1 a:hover {
+            color: #6200ea;
+            text-shadow: 0 2px 8px rgba(98, 0, 234, 0.4);
         }
 
         .gallery {
@@ -517,7 +535,7 @@ function getHomeHTML(settings = {}) {
 </head>
 <body>
     <div class="container">
-        <h1>${siteTitle}</h1>
+        <h1><a href="/" onclick="navigateToPage(1); return false;">${siteTitle}</a></h1>
         <div class="gallery" id="gallery">
             <div class="loading">加载中...</div>
         </div>
@@ -544,8 +562,24 @@ function getHomeHTML(settings = {}) {
     <script>
         const loadMode = '${loadMode}';
         const pageSize = ${pageSize};
-        let currentPage = 1;
+        let currentPage = ${currentPage};
         let loadedPhotos = [];
+        
+        // 更新URL路由
+        function updateURL(page) {
+            if (loadMode === 'pagination') {
+                const newUrl = page === 1 ? '/' : '/page/' + page;
+                history.pushState({page: page}, '', newUrl);
+            }
+        }
+        
+        // 处理浏览器前进后退
+        window.addEventListener('popstate', function(event) {
+            if (event.state && event.state.page) {
+                currentPage = event.state.page;
+                loadPhotos(currentPage);
+            }
+        });
 
         function openModal(imgSrc) {
             const modal = document.getElementById("myModal");
@@ -556,6 +590,13 @@ function getHomeHTML(settings = {}) {
 
         function closeModal() {
             document.getElementById("myModal").style.display = "none";
+        }
+
+        // 导航到指定页面
+        function navigateToPage(page) {
+            currentPage = page;
+            loadPhotos(page);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         window.onclick = function(event) {
@@ -672,6 +713,11 @@ function getHomeHTML(settings = {}) {
                 loadPhotos(currentPage);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
+        }
+        
+        // 初始化页面状态
+        if (loadMode === 'pagination' && currentPage > 1) {
+            history.replaceState({page: currentPage}, '', currentPage === 1 ? '/' : '/page/' + currentPage);
         }
 
         loadPhotos(currentPage);
