@@ -4,11 +4,11 @@ compatibility_date = "2023-12-01"
 
 [[r2_buckets]]
 binding = "PHOTO_BUCKET"
-bucket_name = "halo2"
+bucket_name = "album"
 
 [[kv_namespaces]]
 binding = "PHOTO_METADATA"
-id = "202028fb42944e8a8293b02d7ae48d3b"
+id = "951622a24c8b411f9ec8e9de85270e84"
 
 #[vars]
 #ADMIN_PASSWORD = "your_new_password"
